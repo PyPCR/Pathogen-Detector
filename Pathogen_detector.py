@@ -15,6 +15,13 @@ icon_image = Image.open("Pathogen Detector Icon.ico")
 st.set_page_config(page_title="Pathogen Detector",
                    initial_sidebar_state="expanded", layout="wide", page_icon=icon_image)
 
+gsheet_url = "https://docs.google.com/spreadsheets/d/1L5hBrjqB_7UWtcURcEHSa_wqmV-ru-9LpHVgIOMxpdY"
+
+# Load the YAML file
+with open('credentials.yaml', 'r') as file:
+    credentials = yaml.safe_load(file)
+
+
 # Define page background color
 page_bg_color = """
 <style>
@@ -374,6 +381,43 @@ class Pathogen_Detector:
                                     pdf.cell(17, 8, str(
                                         round(row['auc2'], 2)), 1)
 
+                                pdf.cell(17,8,"",0,ln=True)    
+                                pdf.set_text_color(r=0, g=0, b=0)
+                                pdf.ln(5)
+                                pdf.set_font("Arial", "", 12)
+                                pdf.cell(0, 10, "Tm Threshold", ln=True)
+                                tm_data = pd.read_excel("Expected_Tm.xlsx")
+
+                                total_table_width = 24 * len(tm_data.columns)
+                                x_center = (pdf.w - total_table_width) / 2
+
+                                pdf.set_x(x_center)
+                                for column in tm_data.columns:
+                                    pdf.set_font("Arial", "B", 9)
+                                    pdf.cell(24, 10, column, 1, align="C")
+                                pdf.ln(1.8)
+                                for index, row in tm_data.iterrows():
+                                    pdf.ln(8)
+                                    pdf.set_x(x_center)
+                                    pdf.cell(24, 8, str(
+                                        row["Target"]), 1, align="C")
+                                    pdf.cell(24, 8, str(
+                                        row["SP"]), 1, align="C")
+                                    pdf.cell(24, 8, str(
+                                        row["HI"]), 1, align="C")
+                                    pdf.cell(24, 8, str(
+                                        row["NM"]), 1, align="C")
+                                    pdf.cell(24, 8, str(
+                                        row["EV"]), 1, align="C")
+                                    pdf.cell(24, 8, str(
+                                        row["HSV 1"]), 1, align="C")
+                                    pdf.cell(24, 8, str(
+                                        row["HSV 2"]), 1, align="C")
+                                    pdf.cell(24, 8, str(
+                                        row["VZV"]), 1, align="C")
+                                    pdf.cell(24, 8, str(
+                                        row["CMV"]), 1, align="C")
+
                                 pdf.add_page()
                                 pdf.set_font("Arial", "", 12)
                                 pdf.set_text_color(r=0, g=0, b=0)
@@ -467,7 +511,7 @@ class Pathogen_Detector:
                                         conn = st.connection(
                                             "gsheets", type=GSheetsConnection)
                                         existing_data = conn.read(
-                                            worksheet="Original Features", usecols=list(range(17)), ttl=5)
+                                            spreadsheet=gsheet_url, worksheet="Original Features", usecols=list(range(17)), ttl=5)
                                         existing_data = existing_data.dropna(
                                             how="all")
                                         combined_data = pd.concat(
@@ -519,7 +563,7 @@ class Pathogen_Detector:
                                 st.warning(
                                     "MEP Not Found (or) Check Pathogens Naming Conventions")
                             else:
-                                password = "abc"
+                                password = credentials["credentials"]["usernames"]["admin"]["password"]
                                 if "permission_granted" not in st.session_state:
                                     st.session_state.permission_granted = False
 
@@ -571,7 +615,7 @@ class Pathogen_Detector:
                                         conn = st.connection(
                                             "gsheets", type=GSheetsConnection)
                                         existing_data = conn.read(
-                                            worksheet="Mep Features", usecols=list(range(18)), ttl=5)
+                                            spreadsheet=gsheet_url, worksheet="Mep Features", usecols=list(range(18)), ttl=5)
                                         existing_data = existing_data.dropna(
                                             how="all")
 
@@ -640,7 +684,7 @@ class Pathogen_Detector:
                                 conn = st.connection(
                                     "gsheets", type=GSheetsConnection)
                                 existing_data = conn.read(
-                                    worksheet="Mep Features", usecols=list(range(18)), ttl=5)
+                                    spreadsheet=gsheet_url, worksheet="Mep Features", usecols=list(range(18)), ttl=5)
                                 existing_data = existing_data.dropna(
                                     how="all")
                                 existing_data['Barcode'] = existing_data['Barcode'].apply(
@@ -654,23 +698,12 @@ class Pathogen_Detector:
                 st.error(
                     "Unsupported file format! Please upload files with the .rex extension only.")
 
-    def about(self):
-        st.title("About Us")
-        st.markdown(
-            "Microbiological Laboratory Research and Services India Private Limited (MLRS) was started in the year 2010 by passionate microbiologists who were trained and serving at CMC, Vellore. MLRS focuses on microbiology range of products such as commercial production of high quality ready-to-use microbiological culture media for clinical and industrial use. MLRS also provides training in research & diagnostic microbiology.  *[Learn More](https://microserv.in/about.html)*")
-        st.divider()
-        st.markdown("To achieve excellence through innovation in developing and manufacturing high-sensitivity Invitro Diagnostic kits and media to improve the quality of clinical diagnosis \n")
-        st.markdown("We at Microbiological Laboratory Research and Services India Private Limited (MLRS) are committed to design, develop, and manufacture high-quality invitro-diagnostic kits, ready-to-use culture media, diagnostic reagents, and biological controls. Our products provide clinical laboratories and hospitals a cost-effective solution for generating reliable patient test reports on a par with national and global standards.")
-
 
 if 'login' not in st.session_state:
     st.session_state.login = False
 
 col1, col2, col3 = st.columns([4, 7, 4])
 
-# Load the YAML file
-with open('credentials.yaml', 'r') as file:
-    credentials = yaml.safe_load(file)
 
 if not st.session_state.get('login'):
     with col2:
@@ -699,7 +732,7 @@ if not st.session_state.get('login'):
             submit = st.form_submit_button(":blue[Submit]")
 
             if submit:
-                if username in credentials["credentials"]['usernames'] and password == credentials["credentials"]['usernames'][username]['password']:
+                if (username in credentials["credentials"]['usernames']) and (password == credentials["credentials"]['usernames'][username]['password']):
                     st.session_state.login = True
                     st.success("Login Sucessfull")
                     st.rerun()
@@ -737,18 +770,14 @@ if st.session_state.get('login'):
                     </body>
                     </html>
                     """, unsafe_allow_html=True)
-        page_option = option_menu(menu_title=None, options=[
-                                  "Interpreter", "About Us"], icons=[" ", " "])
-    if page_option == "Interpreter":
-        obj = Pathogen_Detector()
-        obj.Interpreter()
+    #     page_option = option_menu(menu_title=None, options=[
+    #                               "Interpreter"], icons=[" "])
+    # if page_option == "Interpreter":
+    obj = Pathogen_Detector()
+    obj.Interpreter()
 
-    elif page_option == "About Us":
-        obj = Pathogen_Detector()
-        obj.about()
-
-        with st.sidebar:
-            logout = st.button(label="Logout")
-            if logout:
-                st.session_state.clear()
-                st.rerun()
+    with st.sidebar:
+        logout = st.button(label="Logout", key="logout_key")
+        if logout:
+            st.session_state.clear()
+            st.rerun()
