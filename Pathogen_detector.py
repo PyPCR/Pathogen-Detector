@@ -732,7 +732,8 @@ if not st.session_state.get('login'):
             submit = st.form_submit_button(":blue[Submit]")
 
             if submit:
-                if (username in credentials["credentials"]['usernames']) and (password == credentials["credentials"]['usernames'][username]['password']):
+                if (username == credentials["credentials"]['usernames']['mlrs_user']['name']) and (password == credentials["credentials"]['usernames']['mlrs_user']['password']):
+                #if (username in credentials["credentials"]['usernames']) and (password == credentials["credentials"]['usernames'][username]['password']):
                     st.session_state.login = True
                     st.success("Login Sucessfull")
                     st.rerun()
